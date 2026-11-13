@@ -1,0 +1,5 @@
+.cache/
+__pycache__/
+*.pyc
+data/emb_*.npy
+.pytest_cache/
