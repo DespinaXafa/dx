@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Πληρώ τις προϋποθέσεις;</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Commissioner:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: one column; search first, a procedure opens as its own view (hash routing). */
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --ink:#152033; --muted:#5b6678; --line:#dde3ec;
+  --accent:#1c5bb8; --accent-soft:#e7effb; --accent-ink:#0f3f86;
+  --ok:#17784a; --ok-soft:#e5f4ec; --bad:#b4372c; --bad-soft:#fbeceb; --warn:#8a5a00; --warn-soft:#fff4dc;
+  --font:"Commissioner","Segoe UI",system-ui,-apple-system,sans-serif; --radius:14px; color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f141c; --surface:#171e29; --ink:#e8edf4; --muted:#9aa6b8; --line:#283244;
+  --accent:#6ea3ff; --accent-soft:#1b2a44; --accent-ink:#a9c8ff;
+  --ok:#4fc58a; --ok-soft:#14301f; --bad:#ff8a7d; --bad-soft:#3a1c19; --warn:#f0bf55; --warn-soft:#352a12; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f141c; --surface:#171e29; --ink:#e8edf4; --muted:#9aa6b8; --line:#283244;
+  --accent:#6ea3ff; --accent-soft:#1b2a44; --accent-ink:#a9c8ff;
+  --ok:#4fc58a; --ok-soft:#14301f; --bad:#ff8a7d; --bad-soft:#3a1c19; --warn:#f0bf55; --warn-soft:#352a12; color-scheme:dark}
+*{box-sizing:border-box} html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:16px;line-height:1.55}
+a{color:var(--accent)} button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+.wrap{max-width:880px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid var(--line);background:var(--surface)}
+header.top .wrap{display:flex;align-items:center;gap:12px;height:60px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:17px;color:var(--ink);text-decoration:none}
+.logo i{width:30px;height:30px;border-radius:8px;background:var(--accent);display:grid;place-items:center;color:#fff;font-style:normal}
+.top .tag{margin-left:auto;font-size:12.5px;color:var(--muted)}
+.hero{padding:40px 0 14px}
+.hero h1{font-size:clamp(26px,4.4vw,36px);line-height:1.2;margin:0 0 8px;text-wrap:balance;letter-spacing:-.01em}
+.hero p{margin:0 0 20px;color:var(--muted);max-width:62ch}
+.search{display:flex;gap:8px;background:var(--surface);border:1.5px solid var(--line);border-radius:var(--radius);padding:6px}
+.search:focus-within{border-color:var(--accent)}
+.search input{flex:1;border:0;background:transparent;font:inherit;font-size:17px;padding:10px 12px;color:var(--ink);min-width:0}
+.search input:focus{outline:none}
+.btn{border:0;border-radius:10px;padding:10px 18px;font-weight:600;cursor:pointer;background:var(--accent);color:#fff}
+.btn:hover{filter:brightness(1.07)} .btn[disabled]{opacity:.5;cursor:default}
+.btn.ghost{background:transparent;color:var(--accent);border:1.5px solid var(--line)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.chip{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:6px 13px;font-size:14px;cursor:pointer}
+.chip:hover{border-color:var(--accent);color:var(--accent)}
+.status{font-size:13px;color:var(--muted);margin-top:12px;display:flex;gap:14px;flex-wrap:wrap}
+.status b{font-weight:600;color:var(--ink)}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--muted);margin-right:5px;vertical-align:1px}
+.dot.on{background:var(--ok)} .dot.wait{background:var(--warn)}
+.label{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:26px 0 10px}
+.results{display:grid;gap:10px;padding-bottom:40px}
+.rcard{display:flex;gap:14px;align-items:center;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:15px 18px;cursor:pointer}
+.rcard:hover{border-color:var(--accent)}
+.rcard .t{font-weight:600;font-size:16.5px;display:block}
+.rcard .m{color:var(--muted);font-size:13.5px}
+.rcard .go{margin-left:auto;color:var(--accent);font-size:22px;flex:none}
+.rcard.best{border-color:var(--accent);box-shadow:inset 4px 0 0 var(--accent)}
+.pill{display:inline-block;font-size:11.5px;font-weight:600;color:var(--accent-ink);background:var(--accent-soft);border-radius:6px;padding:1px 7px;margin-left:6px;vertical-align:2px}
+.empty{background:var(--surface);border:1px dashed var(--line);border-radius:var(--radius);padding:22px;color:var(--muted)}
+.back{display:inline-flex;gap:6px;margin:22px 0 6px;background:none;border:0;color:var(--accent);cursor:pointer;padding:4px 0;font-weight:600}
+.ph h1{font-size:clamp(23px,3.8vw,31px);line-height:1.25;margin:4px 0 8px;text-wrap:balance}
+.ph p{margin:0 0 14px;color:var(--muted);max-width:68ch;white-space:pre-line}
+.facts{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}
+.fact{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:7px 12px;font-size:14px}
+.fact b{font-weight:600}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:18px;overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{background:none;border:0;padding:11px 14px;cursor:pointer;color:var(--muted);font-weight:600;border-bottom:2.5px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.tabs button[aria-selected="true"]{color:var(--accent);border-color:var(--accent)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px;margin-bottom:18px}
+.panel h2.sec{font-size:19px;margin:0 0 4px} .panel p.sub{margin:0 0 16px;color:var(--muted);font-size:15px}
+.progress{height:6px;border-radius:6px;background:var(--line);overflow:hidden;margin-bottom:6px}
+.progress i{display:block;height:100%;background:var(--accent);transition:width .25s}
+.pmeta{font-size:13.5px;color:var(--muted);margin-bottom:16px;display:flex;justify-content:space-between}
+.q h2{font-size:18px;line-height:1.4;margin:0 0 6px}
+.cond{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:0 0 10px;white-space:pre-line;font-size:15.5px}
+.ctype{display:inline-block;font-size:12px;font-weight:600;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:0 6px;margin-bottom:6px}
+.note{font-size:13.5px;color:var(--muted);margin-top:14px}
+.warnbox{background:var(--warn-soft);color:var(--warn);border-radius:10px;padding:10px 12px;font-size:13.5px;margin:0 0 12px}
+.opts{display:grid;gap:10px;margin-top:12px}
+.opt{display:flex;align-items:flex-start;gap:12px;width:100%;text-align:left;background:var(--surface);border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer;font-size:15.5px;white-space:pre-line}
+.opt:hover{border-color:var(--accent);background:var(--accent-soft)}
+.opt .k{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--line);display:grid;place-items:center;font-size:13px;font-weight:700;flex:none;background:var(--bg)}
+.yn{grid-template-columns:repeat(3,1fr)} @media (max-width:560px){.yn{grid-template-columns:1fr}}
+.qnav{display:flex;justify-content:space-between;margin-top:16px}
+.linkbtn{background:none;border:0;color:var(--accent);cursor:pointer;font-weight:600;padding:6px 0}
+.linkbtn[disabled]{color:var(--muted);opacity:.5;cursor:default}
+.verdict{border-radius:12px;padding:16px 18px;margin-bottom:14px}
+.verdict.ok{background:var(--ok-soft);color:var(--ok)} .verdict.bad{background:var(--bad-soft);color:var(--bad)}
+.verdict.info{background:var(--accent-soft);color:var(--accent-ink)}
+.verdict h2{margin:0 0 4px;font-size:20px} .verdict p{margin:0;color:var(--ink)}
+.why{list-style:none;padding:0;margin:8px 0 16px;display:grid;gap:8px}
+.why li{display:flex;gap:10px;align-items:flex-start;font-size:14.5px}
+.why .s{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;color:#fff;margin-top:1px}
+.s.y{background:var(--ok)} .s.n{background:var(--bad)} .s.na{background:var(--muted)}
+.clamp{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.acts{display:flex;flex-wrap:wrap;gap:10px}
+.form{display:grid;grid-template-columns:1fr 1fr;gap:14px 16px;margin:6px 0 16px} @media (max-width:560px){.form{grid-template-columns:1fr}}
+.field label{display:block;font-size:14px;font-weight:600;margin-bottom:6px}
+.field input{width:100%;font:inherit;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
+.seg{display:flex;border:1.5px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{flex:1;border:0;background:var(--bg);padding:10px;cursor:pointer;font-weight:600;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
+.field.off{opacity:.45}
+.badge{display:inline-flex;gap:6px;font-size:12.5px;font-weight:600;color:var(--accent-ink);background:var(--accent-soft);border-radius:8px;padding:3px 9px;margin-bottom:10px}
+.flow{overflow-x:auto;padding:4px 0 10px;text-align:center} .flow svg{max-width:100%;height:auto}
+.steps{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+.steps li{display:flex;gap:12px;align-items:flex-start}
+.steps .n{flex:none;min-width:28px;height:28px;border-radius:14px;background:var(--accent-soft);color:var(--accent-ink);font-weight:700;display:grid;place-items:center;font-size:13px;padding:0 6px}
+.steps li.child{margin-left:28px} .steps .x{font-size:12.5px;color:var(--bad);font-weight:600}
+.leg{display:grid;gap:6px;padding-left:18px;margin:6px 0 0}
+footer{border-top:1px solid var(--line);padding:22px 0 34px;color:var(--muted);font-size:13px}
+.hidden{display:none!important}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="logo" href="#"><i>✓</i>Πληρώ τις προϋποθέσεις;</a>
+  <span class="tag" id="count">Φόρτωση…</span>
+</div></header>
+
+<main class="wrap">
+  <section id="home">
+    <div class="hero">
+      <h1>Τι χρειάζεστε από το Δημόσιο;</h1>
+      <p>Γράψτε με δικά σας λόγια τι θέλετε να κάνετε. Θα βρούμε τις σχετικές διαδικασίες από το Εθνικό Μητρώο Διοικητικών Διαδικασιών (ΜΙΤΟΣ) και θα ελέγξουμε μαζί αν πληροίτε τις προϋποθέσεις.</p>
+      <form class="search" id="sf" role="search">
+        <input id="q" type="search" autocomplete="off" aria-label="Περιγράψτε τι χρειάζεστε" placeholder="π.χ. χρειάζομαι βεβαίωση ανεργίας για γιατρό" disabled>
+        <button class="btn" type="submit" id="go" disabled>Αναζήτηση</button>
+      </form>
+      <div class="chips" id="chips"></div>
+      <div class="status" id="status"></div>
+    </div>
+    <div class="label" id="rlabel"></div>
+    <div class="results" id="results"></div>
+  </section>
+
+  <section id="proc" class="hidden">
+    <button class="back" id="back">← Πίσω στα αποτελέσματα</button>
+    <div class="ph">
+      <h1 id="p-title"></h1>
+      <p id="p-desc"></p>
+      <div class="facts" id="p-facts"></div>
+    </div>
+    <div class="tabs" role="tablist" id="ptabs">
+      <button role="tab" data-tab="check" aria-selected="true">Πληρώ τις προϋποθέσεις;</button>
+      <button role="tab" data-tab="steps" aria-selected="false">Βήματα</button>
+      <button role="tab" data-tab="info" aria-selected="false">Νομοθεσία & πηγή</button>
+    </div>
+    <div id="pt-check"><div class="panel hidden" id="rac"></div><div class="panel" id="qz"></div></div>
+    <div class="panel hidden" id="pt-steps"></div>
+    <div class="panel hidden" id="pt-info"></div>
+  </section>
+</main>
+
+<footer><div class="wrap">
+  Οι απαντήσεις είναι ενδεικτικές και δεν αντικαθιστούν την απόφαση της αρμόδιας υπηρεσίας.
+  Δεδομένα: Εθνικό Μητρώο Διοικητικών Διαδικασιών (<a href="https://mitos.gov.gr/">mitos.gov.gr</a>), μέσω του dataset
+  <a href="https://huggingface.co/datasets/glossAPI/mitos">glossAPI/mitos</a> (CC BY-SA 4.0).
+</div></footer>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script type="module">
+import { Lexical, semanticScores, order, rrf } from "./search.js";
+import { RAC } from "./rac.js";
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const DIM = 384;
+let R = [], byId = {}, LEX = null, EMB = null, embedQ = null, lastQ = "";
+
+/* ---------------- φόρτωση δεδομένων ---------------- */
+function setStatus() {
+  const lex = LEX ? `<span><span class="dot on"></span><b>Αναζήτηση λέξεων</b> έτοιμη</span>` : `<span><span class="dot wait"></span>Ετοιμασία αναζήτησης…</span>`;
+  const sem = embedQ ? `<span><span class="dot on"></span><b>Σημασιολογική αναζήτηση</b> ενεργή</span>`
+    : semState === "loading" ? `<span><span class="dot wait"></span>Φόρτωση σημασιολογικής αναζήτησης (μοντέλο ~120 MB, μία φορά)…</span>`
+    : semState === "off" ? `<span><span class="dot"></span>Σημασιολογική αναζήτηση μη διαθέσιμη· χρησιμοποιείται μόνο αναζήτηση λέξεων</span>` : "";
+  $("status").innerHTML = lex + sem;
+}
+let semState = "loading";
+
+function fail(msg) {
+  $("count").textContent = "Σφάλμα φόρτωσης";
+  $("status").innerHTML = `<span style="color:var(--bad)"><span class="dot" style="background:var(--bad)"></span><b>Σφάλμα:</b> ${esc(msg)}</span>`;
+  semState = "off";
+}
+async function init() {
+  setStatus();
+  let res;
+  try { res = await fetch("./data/procs.json", { cache: "no-cache" }); }
+  catch (e) { return fail("Δεν ήταν δυνατή η σύνδεση για τη λήψη του data/procs.json (" + e.message + ")."); }
+  if (!res.ok) return fail(`Δεν βρέθηκε το αρχείο data/procs.json (HTTP ${res.status}). Ελέγξτε ότι υπάρχει στον φάκελο data του repo.`);
+  try {
+    const rd = res.body.getReader(), parts = []; let got = 0;
+    for (;;) { const { done, value } = await rd.read(); if (done) break; parts.push(value); got += value.length;
+      $("count").textContent = `Λήψη δεδομένων… ${(got / 1048576).toFixed(1)} / 17.6 MB`; }
+    R = JSON.parse(new TextDecoder().decode(await new Blob(parts).arrayBuffer()));
+  } catch (e) { return fail("Το data/procs.json δεν διαβάστηκε σωστά (" + e.message + "). Ίσως ανέβηκε ελλιπές· ανεβάστε το ξανά."); }
+  R.forEach((r, i) => { r.i = i; byId[r.id] = r; });
+  $("count").textContent = `${R.length.toLocaleString("el-GR")} διαδικασίες ΜΙΤΟΣ`;
+  await new Promise(r => setTimeout(r, 20));
+  LEX = new Lexical(R.map(r => `${r.t}. ${r.d}`.trim()));
+  $("q").disabled = false; $("go").disabled = false; setStatus();
+  route();
+  loadSemantic();
+}
+
+async function loadSemantic() {
+  try {
+    const buf = await (await fetch("./data/emb.bin")).arrayBuffer();
+    EMB = new Int8Array(buf);
+    if (EMB.length !== R.length * DIM) throw new Error("embeddings size");
+    const { pipeline } = await import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.2");
+    const fe = await pipeline("feature-extraction", "Xenova/multilingual-e5-small", { dtype: "q8" });
+    embedQ = async q => (await fe("query: " + q, { pooling: "mean", normalize: true })).data;
+    semState = "on";
+    if (lastQ) doSearch(lastQ);
+  } catch (e) { console.warn(e); semState = "off"; }
+  setStatus();
+}
+
+/* ---------------- αναζήτηση ---------------- */
+async function rank(q) {
+  const lex = LEX.scores(q);
+  if (!embedQ) return order(lex);
+  const sem = semanticScores(EMB, DIM, await embedQ(q));
+  return order(rrf(lex, sem));
+}
+function card(r, best) {
+  return `<button class="rcard${best ? " best" : ""}" data-id="${r.id}"><span><span class="t">${esc(r.t)}${best ? '<span class="pill">Καλύτερο ταίριασμα</span>' : ""}</span>
+  <span class="m">${esc(r.o || "—")} · ${r.k.length ? r.k.length + " προϋποθέσεις" : "χωρίς προϋποθέσεις"}</span></span><span class="go" aria-hidden="true">›</span></button>`;
+}
+async function doSearch(q) {
+  lastQ = q;
+  if (!q.trim()) { $("rlabel").textContent = ""; $("results").innerHTML = ""; return; }
+  const ord = (await rank(q)).slice(0, 10);
+  $("rlabel").textContent = `Αποτελέσματα για «${q}»`;
+  $("results").innerHTML = ord.map((i, k) => card(R[i], k === 0)).join("");
+  document.querySelectorAll(".rcard").forEach(b => b.onclick = () => { location.hash = "p-" + b.dataset.id; });
+}
+$("sf").onsubmit = e => { e.preventDefault(); doSearch($("q").value); };
+["χρειάζομαι βεβαίωση ανεργίας για γιατρό", "θέλω να βγάλω διαβατήριο", "επίδομα για τα παιδιά μου", "αλλαγή ιδιοκτήτη αυτοκινήτου", "ασφαλιστική ενημερότητα"].forEach(t => {
+  const c = document.createElement("button"); c.className = "chip"; c.type = "button"; c.textContent = t;
+  c.onclick = () => { $("q").value = t; doSearch(t); }; $("chips").appendChild(c);
+});
+
+/* ---------------- διαδικασία ---------------- */
+let cur = null, ans = [], qi = 0;
+function openProc(id) {
+  const r = byId[id]; if (!r) { location.hash = ""; return; }
+  cur = r; ans = []; qi = 0;
+  $("home").classList.add("hidden"); $("proc").classList.remove("hidden");
+  $("p-title").textContent = r.t; $("p-desc").textContent = r.d || "";
+  $("p-facts").innerHTML = [["Φορέας", r.o], ["Κόστος", r.c], ["Χρόνος", r.tm], ["Δικαιολογητικά", r.n]]
+    .filter(x => x[1]).map(([k, v]) => `<span class="fact"><b>${k}:</b> ${esc(v)}</span>`).join("")
+    + `<span class="fact"><b>ΜΙΤΟΣ:</b> <a href="https://id.mitos.gov.gr/${r.id}" target="_blank" rel="noopener">${r.id}</a></span>`;
+  setTab("check"); renderRac(); renderQ(); renderSteps(); renderInfo(); window.scrollTo(0, 0);
+}
+function setTab(t) {
+  document.querySelectorAll("#ptabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === t));
+  ["check", "steps", "info"].forEach(x => $("pt-" + x).classList.toggle("hidden", x !== t));
+  if (t === "steps") drawFlow();
+}
+document.querySelectorAll("#ptabs button").forEach(b => b.onclick = () => setTab(b.dataset.tab));
+$("back").onclick = () => history.length > 1 ? history.back() : (location.hash = "");
+
+/* Ερωτηματολόγιο: μία ερώτηση ανά ομάδα (και μεταξύ ομάδων, ή μέσα στην ομάδα).
+   Ομάδες = conditions_alternative / conditions_alternative_of (υπολογισμένες στο core/mitos.py). */
+const cond = (r, num) => r.k.find(c => c[0] === num);
+function renderQ() {
+  const r = cur, box = $("qz");
+  if (!r.k.length) {
+    box.innerHTML = `<div class="verdict info" role="status"><h2>Δεν υπάρχουν καταγεγραμμένες προϋποθέσεις</h2>
+      <p>Το ΜΙΤΟΣ δεν καταγράφει προϋποθέσεις για αυτή τη διαδικασία, οπότε δεν υπάρχει κάτι να ελεγχθεί εδώ. Δείτε την περιγραφή και τα βήματα, ή επικοινωνήστε με τον φορέα.</p></div>
+      <div class="acts"><button class="btn" id="gost">Δείτε τα βήματα</button></div>`;
+    $("gost").onclick = () => setTab("steps"); return;
+  }
+  const G = r.g, total = G.length;
+  if (qi >= total || ans.includes("no")) return renderVerdict();
+  const [members, inferred] = G[qi], pct = Math.round(qi / total * 100);
+  let body;
+  if (members.length === 1) {
+    const c = cond(r, members[0]);
+    body = `${c[2] ? `<span class="ctype">${esc(c[2])}</span>` : ""}<div class="cond">${esc(c[1])}</div>
+      <h2>Ισχύει για εσάς;</h2>
+      <div class="opts yn"><button class="opt" data-a="yes"><span class="k">✓</span>Ναι</button><button class="opt" data-a="no"><span class="k">✕</span>Όχι</button><button class="opt" data-a="na"><span class="k">–</span>Δεν με αφορά</button></div>`;
+  } else {
+    body = `${inferred ? `<div class="warnbox">Το ΜΙΤΟΣ σημειώνει κάποια από τις παρακάτω ως εναλλακτική χωρίς να ορίζει ποιας. Εδώ θεωρείται εναλλακτική της προηγούμενης.</div>` : ""}
+      <h2>Ισχύει τουλάχιστον ένα από τα παρακάτω; <span class="note">(αρκεί ένα)</span></h2>
+      <div class="opts">${members.map((n, j) => { const c = cond(r, n); return `<button class="opt" data-a="yes"><span class="k">${String.fromCharCode(913 + j)}</span><span>${esc(c[1])}</span></button>`; }).join("")}
+      <button class="opt" data-a="no"><span class="k">✕</span>Κανένα από αυτά</button><button class="opt" data-a="na"><span class="k">–</span>Δεν με αφορά</button></div>`;
+  }
+  box.innerHTML = `<div class="progress" aria-hidden="true"><i style="width:${pct}%"></i></div>
+    <div class="pmeta"><span>Ερώτηση ${qi + 1} από ${total}</span><span>${pct}%</span></div>
+    <div class="q">${body}</div>
+    <div class="qnav"><button class="linkbtn" id="qb" ${qi === 0 ? "disabled" : ""}>← Προηγούμενη</button></div>
+    <p class="note">«Δεν με αφορά»: για προϋποθέσεις που ισχύουν μόνο σε ορισμένες περιπτώσεις (π.χ. μόνο για ψηφιακή υποβολή).</p>`;
+  box.querySelectorAll(".opt").forEach(b => b.onclick = () => { ans[qi] = b.dataset.a; qi++; renderQ(); });
+  $("qb").onclick = () => { if (qi > 0) { qi--; ans.length = qi; renderQ(); } };
+}
+function renderVerdict() {
+  const r = cur, fail = ans.includes("no");
+  const items = r.g.map(([m], i) => {
+    if (i >= ans.length) return "";
+    const a = ans[i], txt = m.map(n => esc(cond(r, n)[1])).join(" <b>ή</b> ");
+    return `<li><span class="s ${a === "yes" ? "y" : a === "no" ? "n" : "na"}">${a === "yes" ? "✓" : a === "no" ? "✕" : "–"}</span><span class="clamp">${txt}</span></li>`;
+  }).join("");
+  $("qz").innerHTML = `<div class="verdict ${fail ? "bad" : "ok"}" role="status"><h2>${fail ? "Δεν πληρούνται οι προϋποθέσεις" : "Πληρούνται οι προϋποθέσεις"}</h2>
+    <p>${fail ? "Η προϋπόθεση με ✕ δεν καλύπτεται." : "Σύμφωνα με τις απαντήσεις σας, μπορείτε να προχωρήσετε."}</p></div>
+    <ul class="why">${items}</ul>
+    <div class="acts">${fail ? "" : '<button class="btn" id="gost">Δείτε τα βήματα</button>'}<button class="btn ghost" id="again">Ξανά από την αρχή</button></div>`;
+  $("again").onclick = () => { ans = []; qi = 0; renderQ(); };
+  const g = $("gost"); if (g) g.onclick = () => setTab("steps");
+}
+
+let F = { age: "", reg: true, months: "", cont: true, digital: true, codes: true };
+function seg(k, v) { return `<div class="seg" data-f="${k}"><button type="button" data-v="1" aria-pressed="${v}">Ναι</button><button type="button" data-v="0" aria-pressed="${!v}">Όχι</button></div>`; }
+function renderRac() {
+  const rules = RAC[cur.id], box = $("rac");
+  box.classList.toggle("hidden", !rules); if (!rules) return;
+  box.innerHTML = `<span class="badge">⚡ Γρήγορος έλεγχος</span>
+    <h2 class="sec">Συμπληρώστε τα στοιχεία σας και δείτε αμέσως αν δικαιούστε</h2>
+    <p class="sub">Η απάντηση βγαίνει από κανόνες γραμμένους πάνω στις προϋποθέσεις αυτής της διαδικασίας στο ΜΙΤΟΣ.</p>
+    <div class="form">
+      <div class="field"><label for="f-age">Ηλικία (συμπληρωμένα έτη)</label><input id="f-age" type="number" min="0" max="120" inputmode="numeric" placeholder="π.χ. 34" value="${F.age}"></div>
+      <div class="field"><label for="f-m">Μήνες εγγραφής ως άνεργος στη ΔΥΠΑ</label><input id="f-m" type="number" min="0" max="600" inputmode="numeric" placeholder="π.χ. 12" value="${F.months}"></div>
+      <div class="field"><label>Είστε εγγεγραμμένος/η ως άνεργος/η στη ΔΥΠΑ;</label>${seg("reg", F.reg)}</div>
+      <div class="field"><label>Η εγγραφή σας είναι συνεχής, χωρίς διακοπή;</label>${seg("cont", F.cont)}</div>
+      <div class="field"><label>Θα υποβάλετε την αίτηση ψηφιακά;</label>${seg("digital", F.digital)}</div>
+      <div class="field ${F.digital ? "" : "off"}" id="codes-f"><label>Έχετε κωδικούς ΔΥΠΑ ή taxisnet;</label>${seg("codes", F.codes)}</div>
+    </div><div id="rac-out"></div>
+    <p class="note">Ή απαντήστε στις ερωτήσεις μία-μία παρακάτω.</p>`;
+  $("f-age").oninput = e => { F.age = e.target.value; racOut(); };
+  $("f-m").oninput = e => { F.months = e.target.value; racOut(); };
+  box.querySelectorAll(".seg").forEach(s => s.querySelectorAll("button").forEach(b => b.onclick = () => {
+    F[s.dataset.f] = b.dataset.v === "1"; s.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b));
+    $("codes-f").classList.toggle("off", !F.digital); racOut(); }));
+  racOut();
+}
+function racOut() {
+  const out = $("rac-out");
+  if (F.age === "" || F.months === "") { out.innerHTML = `<div class="verdict info"><p style="color:inherit">Συμπληρώστε ηλικία και μήνες εγγραφής για να δείτε το αποτέλεσμα.</p></div>`; return; }
+  const a = { age: +F.age, months: +F.months, reg: F.reg, cont: F.cont, digital: F.digital, codes: F.codes };
+  const res = RAC[cur.id].filter(r => r.applies(a)).map(r => ({ r, ok: r.check(a) })), ok = res.every(x => x.ok);
+  out.innerHTML = `<div class="verdict ${ok ? "ok" : "bad"}" role="status"><h2>${ok ? "Πληροίτε τις προϋποθέσεις" : "Δεν πληροίτε ακόμα τις προϋποθέσεις"}</h2></div>
+    <ul class="why">${res.map(x => `<li><span class="s ${x.ok ? "y" : "n"}">${x.ok ? "✓" : "✕"}</span><span>${esc(x.ok ? x.r.ok : x.r.no)} <span class="note">(προϋπόθεση ${x.r.c})</span></span></li>`).join("")}</ul>`;
+}
+
+/* Βήματα + διάγραμμα ροής (step_child / step_previous_child / step_exit) */
+function renderSteps() {
+  const r = cur;
+  if (!r.s.length) { $("pt-steps").innerHTML = `<h2 class="sec">Βήματα</h2><p class="sub">Το ΜΙΤΟΣ δεν καταγράφει βήματα για αυτή τη διαδικασία.</p>`; return; }
+  $("pt-steps").innerHTML = `<h2 class="sec">Πώς γίνεται η διαδικασία</h2><p class="sub">${r.s.length} βήματα${r.tm ? " · " + esc(r.tm) : ""}</p>
+    <div class="flow" id="flow"></div>
+    <ol class="steps">${r.s.map(([n, t, ch, , ex]) => `<li class="${ch ? "child" : ""}"><span class="n">${n}</span><span>${esc(t)}${ex ? ' <span class="x">· τέλος διαδικασίας</span>' : ""}</span></li>`).join("")}</ol>`;
+}
+const mq = s => String(s).replace(/["<>{}\[\]|`#;]/g, " ").replace(/\s+/g, " ").trim().slice(0, 70);
+function flowCode(r) {
+  let c = 'flowchart TD\nS(["Έναρξη"])\n', main = "S";
+  for (const [n, t, ch, prev, ex] of r.s) {
+    const id = "N" + n;
+    c += `${id}["${n}. ${mq(t)}"]\n`;
+    if (ch && prev != null && r.s.some(x => x[0] === prev)) c += `N${prev}-->${id}\n`;
+    else { c += `${main}-->${id}\n`; main = id; }
+    if (ex) c += `${id}-->X${n}(["Τέλος"])\n`;
+  }
+  return c + `${main}-->E(["Ολοκλήρωση"])\n`;
+}
+let mid = 0;
+async function drawFlow() {
+  const el = $("flow"); if (!el || !window.mermaid || el.dataset.done === cur.id || cur.s.length > 40) return;
+  try { const { svg } = await mermaid.render("fl" + (mid++), flowCode(cur)); el.innerHTML = svg; el.dataset.done = cur.id; } catch (e) { el.innerHTML = ""; }
+}
+function renderInfo() {
+  const r = cur;
+  $("pt-info").innerHTML = `<h2 class="sec">Νομοθεσία</h2>
+    ${r.l.length ? `<ul class="leg">${r.l.map(([t, u]) => `<li>${u ? `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(t)}</a>` : esc(t)}</li>`).join("")}</ul>` : `<p class="sub">Δεν καταγράφεται νομοθεσία.</p>`}
+    <h2 class="sec" style="margin-top:18px">Πηγή</h2>
+    <p class="sub">Επίσημη σελίδα της διαδικασίας στο ΜΙΤΟΣ: <a href="https://id.mitos.gov.gr/${r.id}" target="_blank" rel="noopener">id.mitos.gov.gr/${r.id}</a></p>`;
+}
+
+/* routing */
+function route() {
+  const h = location.hash.slice(1);
+  if (h.startsWith("p-") && R.length) openProc(h.slice(2));
+  else { $("proc").classList.add("hidden"); $("home").classList.remove("hidden"); }
+}
+window.addEventListener("hashchange", route);
+const dark = matchMedia("(prefers-color-scheme: dark)").matches;
+if (window.mermaid) mermaid.initialize({ startOnLoad: false, securityLevel: "strict", theme: "base",
+  themeVariables: { fontFamily: "Commissioner, system-ui, sans-serif", primaryColor: dark ? "#1b2a44" : "#e7effb", primaryBorderColor: dark ? "#6ea3ff" : "#1c5bb8", primaryTextColor: dark ? "#e8edf4" : "#152033", lineColor: dark ? "#9aa6b8" : "#5b6678", fontSize: "14px" } });
+init().catch(e => fail(e.message));
+</script>
+</body>
+</html>
