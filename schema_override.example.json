@@ -1,7 +1,0 @@
-{
-  "_οδηγία": "Μετονομάστε σε schema_override.json ΜΟΝΟ αν η αυτόματη αντιστοίχιση του scripts/explore.py είναι λάθος. Τιμές = ονόματα στηλών του dataset.",
-  "title": "title",
-  "requirements": "requirements",
-  "steps": "steps",
-  "legislation": "legislation"
-}
