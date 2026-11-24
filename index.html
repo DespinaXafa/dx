@@ -159,7 +159,7 @@ footer{border-top:1px solid var(--line);padding:22px 0 34px;color:var(--muted);f
 <footer><div class="wrap">
   Οι απαντήσεις είναι ενδεικτικές και δεν αντικαθιστούν την απόφαση της αρμόδιας υπηρεσίας.
   Δεδομένα: Εθνικό Μητρώο Διοικητικών Διαδικασιών (<a href="https://mitos.gov.gr/">mitos.gov.gr</a>), μέσω του dataset
-  <a href="https://huggingface.co/datasets/glossAPI/mitos">glossAPI/mitos</a> (CC BY-SA 4.0).
+  <a href="https://huggingface.co/datasets/glossAPI/mitos">glossAPI/mitos</a> (CC BY-SA 4.0). <span style="opacity:.6">· έκδοση 3</span>
 </div></footer>
 
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
@@ -177,14 +177,28 @@ function setStatus() {
   const lex = LEX ? `<span><span class="dot on"></span><b>Αναζήτηση λέξεων</b> έτοιμη</span>` : `<span><span class="dot wait"></span>Ετοιμασία αναζήτησης…</span>`;
   const sem = embedQ ? `<span><span class="dot on"></span><b>Σημασιολογική αναζήτηση</b> ενεργή</span>`
     : semState === "loading" ? `<span><span class="dot wait"></span>Φόρτωση σημασιολογικής αναζήτησης (μοντέλο ~120 MB, μία φορά)…</span>`
-    : semState === "off" ? `<span><span class="dot"></span>Σημασιολογική αναζήτηση μη διαθέσιμη· χρησιμοποιείται μόνο αναζήτηση λέξεων</span>` : "";
+    : semState === "off" ? `<span><span class="dot"></span>Σημασιολογική αναζήτηση μη διαθέσιμη· χρησιμοποιείται μόνο αναζήτηση λέξεων${semErr ? ` <small>(${esc(semErr)})</small>` : ""}</span>` : "";
   $("status").innerHTML = lex + sem;
 }
 let semState = "loading";
 
+function fail(msg) {
+  $("count").textContent = "Σφάλμα φόρτωσης";
+  $("status").innerHTML = `<span style="color:var(--bad)"><span class="dot" style="background:var(--bad)"></span><b>Σφάλμα:</b> ${esc(msg)}</span>`;
+  semState = "off";
+}
 async function init() {
   setStatus();
-  R = await (await fetch("./data/procs.json")).json();
+  let res;
+  try { res = await fetch("./data/procs.json", { cache: "no-cache" }); }
+  catch (e) { return fail("Δεν ήταν δυνατή η σύνδεση για τη λήψη του data/procs.json (" + e.message + ")."); }
+  if (!res.ok) return fail(`Δεν βρέθηκε το αρχείο data/procs.json (HTTP ${res.status}). Ελέγξτε ότι υπάρχει στον φάκελο data του repo.`);
+  try {
+    const rd = res.body.getReader(), parts = []; let got = 0;
+    for (;;) { const { done, value } = await rd.read(); if (done) break; parts.push(value); got += value.length;
+      $("count").textContent = `Λήψη δεδομένων… ${(got / 1048576).toFixed(1)} / 17.6 MB`; }
+    R = JSON.parse(new TextDecoder().decode(await new Blob(parts).arrayBuffer()));
+  } catch (e) { return fail("Το data/procs.json δεν διαβάστηκε σωστά (" + e.message + "). Ίσως ανέβηκε ελλιπές· ανεβάστε το ξανά."); }
   R.forEach((r, i) => { r.i = i; byId[r.id] = r; });
   $("count").textContent = `${R.length.toLocaleString("el-GR")} διαδικασίες ΜΙΤΟΣ`;
   await new Promise(r => setTimeout(r, 20));
@@ -194,17 +208,26 @@ async function init() {
   loadSemantic();
 }
 
+let semErr = "";
 async function loadSemantic() {
   try {
-    const buf = await (await fetch("./data/emb.bin")).arrayBuffer();
-    EMB = new Int8Array(buf);
-    if (EMB.length !== R.length * DIM) throw new Error("embeddings size");
-    const { pipeline } = await import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.2");
-    const fe = await pipeline("feature-extraction", "Xenova/multilingual-e5-small", { dtype: "q8" });
+    const r = await fetch("./data/emb.bin", { cache: "no-cache" });
+    if (!r.ok) throw new Error(`δεν βρέθηκε το data/emb.bin (HTTP ${r.status})`);
+    EMB = new Int8Array(await r.arrayBuffer());
+    if (EMB.length !== R.length * DIM) throw new Error(`το data/emb.bin έχει λάθος μέγεθος (${EMB.length} bytes, αναμένονται ${R.length * DIM})`);
+    let fe = null, last = null;
+    for (const v of ["3.8.1", "4.3.2"]) {
+      try {
+        const { pipeline } = await import(`https://cdn.jsdelivr.net/npm/@huggingface/transformers@${v}`);
+        fe = await pipeline("feature-extraction", "Xenova/multilingual-e5-small", { dtype: "q8", device: "wasm" });
+        break;
+      } catch (e) { last = e; console.warn("transformers " + v, e); }
+    }
+    if (!fe) throw new Error("το μοντέλο δεν φόρτωσε: " + (last?.message || last));
     embedQ = async q => (await fe("query: " + q, { pooling: "mean", normalize: true })).data;
     semState = "on";
     if (lastQ) doSearch(lastQ);
-  } catch (e) { console.warn(e); semState = "off"; }
+  } catch (e) { console.warn(e); semState = "off"; semErr = String(e.message || e); }
   setStatus();
 }
 
@@ -378,7 +401,7 @@ window.addEventListener("hashchange", route);
 const dark = matchMedia("(prefers-color-scheme: dark)").matches;
 if (window.mermaid) mermaid.initialize({ startOnLoad: false, securityLevel: "strict", theme: "base",
   themeVariables: { fontFamily: "Commissioner, system-ui, sans-serif", primaryColor: dark ? "#1b2a44" : "#e7effb", primaryBorderColor: dark ? "#6ea3ff" : "#1c5bb8", primaryTextColor: dark ? "#e8edf4" : "#152033", lineColor: dark ? "#9aa6b8" : "#5b6678", fontSize: "14px" } });
-init();
+init().catch(e => fail(e.message));
 </script>
 </body>
 </html>
